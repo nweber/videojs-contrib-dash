@@ -1,4 +1,4 @@
-(function(window, videojs, qunit) {
+(function(window, videojs, dashjs, qunit) {
   'use strict';
 
   var
@@ -40,11 +40,10 @@
         parentEl = document.createElement('div'),
         Html5,
         tech,
-        contextObj = { fake: 'context' },
+        contextObj = { },
 
         //stubs
-        origContext = Dash.di.DashContext,
-        origMediaPlayer = MediaPlayer,
+        origMediaPlayer = dashjs.MediaPlayer.create,
         origVJSXHR = videojs.xhr,
         origResetSrc = videojs.Html5DashJS.prototype.resetSrc_;
 
@@ -56,15 +55,11 @@
       tech.triggerReady = function() { };
       parentEl.appendChild(el);
 
-      Dash.di.DashContext = function () {
-        return contextObj;
-      };
-
-      window.MediaPlayer = function (context) {
+      dashjs.MediaPlayer.create = function (context) {
         deepEqual(context, contextObj, 'context is passed into MediaPlayer correctly');
 
         return {
-          startup: function () {
+          initialize: function () {
             startupCalled = true;
           },
           retrieveManifest: function (manifestUrl, callback) {
@@ -78,9 +73,11 @@
           setAutoPlay: function (autoplay) {
             strictEqual(autoplay, false, 'autoplay is set to false by default');
           },
-          attachSource: function (manifest, keySystem, keySystemOptions) {
+          setProtectionData: function(keySystemOptions){
             deepEqual(keySystemOptions, expectedKeySystemOptions,
               'src and manifest key system options are merged');
+          },
+          attachSource: function (manifest) {
             deepEqual(manifest, fakeManifest, 'manifest object is sent to attachSource');
 
             strictEqual(startupCalled, true, 'MediaPlayer.startup was called');
@@ -90,16 +87,11 @@
             tech.dispose();
 
             // Restore
-            Dash.di.DashContext = origContext;
-            window.MediaPlayer = origMediaPlayer;
+            dashjs.MediaPlayer.create = origMediaPlayer;
             videojs.xhr = origVJSXHR;
             videojs.Html5DashJS.prototype.resetSrc_ = origResetSrc;
           }
         };
-      };
-
-      window.MediaPlayer.utils = {
-        Debug: origMediaPlayer.utils.Debug
       };
 
       // We have to override this because PhantomJS does not have Encrypted Media Extensions
@@ -185,4 +177,4 @@
     testHandleSource(sampleSrcNoDRM, manifestWithProtection, mergedKeySystemOptions);
   });
 
-})(window, window.videojs, window.QUnit);
+})(window, window.videojs, window.dashjs, window.QUnit);
