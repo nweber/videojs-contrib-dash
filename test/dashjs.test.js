@@ -40,14 +40,13 @@
         parentEl = document.createElement('div'),
         Html5,
         tech,
-        contextObj = { },
 
         //stubs
-        origMediaPlayer = dashjs.MediaPlayer.create,
+        origMediaPlayer = dashjs.MediaPlayer,
         origVJSXHR = videojs.xhr,
         origResetSrc = videojs.Html5DashJS.prototype.resetSrc_;
 
-      expect(8);
+      expect(7);
 
       Html5 = videojs.getComponent('Html5');
       tech = new Html5({});
@@ -55,41 +54,44 @@
       tech.triggerReady = function() { };
       parentEl.appendChild(el);
 
-      dashjs.MediaPlayer.create = function (context) {
-        deepEqual(context, contextObj, 'context is passed into MediaPlayer correctly');
-
+      dashjs.MediaPlayer = function () {
         return {
-          initialize: function () {
-            startupCalled = true;
-          },
-          retrieveManifest: function (manifestUrl, callback) {
-            strictEqual(manifestUrl, 'movie.mpd', 'manifest url is requested via retrieveManifest');
+          create: function () {
+            return {
+              initialize: function () {
+                startupCalled = true;
+              },
+              retrieveManifest: function (manifestUrl, callback) {
+                strictEqual(manifestUrl, 'movie.mpd',
+                    'manifest url is requested via retrieveManifest');
 
-            return callback(fakeManifest, null);
-          },
-          attachView: function () {
-            attachViewCalled = true;
-          },
-          setAutoPlay: function (autoplay) {
-            strictEqual(autoplay, false, 'autoplay is set to false by default');
-          },
-          setProtectionData: function(keySystemOptions){
-            deepEqual(keySystemOptions, expectedKeySystemOptions,
-              'src and manifest key system options are merged');
-          },
-          attachSource: function (manifest) {
-            deepEqual(manifest, fakeManifest, 'manifest object is sent to attachSource');
+                return callback(fakeManifest, null);
+              },
+              attachView: function () {
+                attachViewCalled = true;
+              },
+              setAutoPlay: function (autoplay) {
+                strictEqual(autoplay, false, 'autoplay is set to false by default');
+              },
+              setProtectionData: function(keySystemOptions){
+                deepEqual(keySystemOptions, expectedKeySystemOptions,
+                  'src and manifest key system options are merged');
+              },
+              attachSource: function (manifest) {
+                deepEqual(manifest, fakeManifest, 'manifest object is sent to attachSource');
 
-            strictEqual(startupCalled, true, 'MediaPlayer.startup was called');
-            strictEqual(attachViewCalled, true, 'MediaPlayer.attachView was called');
-            strictEqual(resetSrcCalled, true, 'Html5DashJS#resetSrc_ was called');
+                strictEqual(startupCalled, true, 'MediaPlayer.startup was called');
+                strictEqual(attachViewCalled, true, 'MediaPlayer.attachView was called');
+                strictEqual(resetSrcCalled, true, 'Html5DashJS#resetSrc_ was called');
 
-            tech.dispose();
+                tech.dispose();
 
-            // Restore
-            dashjs.MediaPlayer.create = origMediaPlayer;
-            videojs.xhr = origVJSXHR;
-            videojs.Html5DashJS.prototype.resetSrc_ = origResetSrc;
+                // Restore
+                dashjs.MediaPlayer = origMediaPlayer;
+                videojs.xhr = origVJSXHR;
+                videojs.Html5DashJS.prototype.resetSrc_ = origResetSrc;
+              }
+            };
           }
         };
       };
